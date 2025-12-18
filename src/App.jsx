@@ -49,7 +49,11 @@ export default function App() {
 
   /* ================= TOTAL ================= */
   const subtotal = useMemo(
-    () => items.reduce((sum, i) => sum + i.qty * i.rate, 0),
+    () =>
+      items.reduce(
+        (sum, i) => sum + (i.qty * i.rate - i.discount),
+        0
+      ),
     [items]
   );
 
@@ -69,7 +73,10 @@ export default function App() {
 
   /* ================= ITEM HELPERS ================= */
   const addItem = () => {
-    setItems([...items, { id: Date.now(), description: "", qty: 1, rate: 0 }]);
+    setItems([
+      ...items,
+      { id: Date.now(), description: "", qty: 1, rate: 0, discount: 0 }
+    ]);
   };
 
   const updateItem = (id, field, value) => {
@@ -84,16 +91,24 @@ export default function App() {
 
   /* ================= UI ================= */
   return (
-    <div style={{ maxWidth: 820, margin: "auto", padding: 40, fontSize: 13 }}>
+    <div style={{ maxWidth: 840, margin: "auto", padding: 40, fontSize: 13 }}>
       {/* HEADER */}
-      <div style={{ display: "flex", justifyContent: "space-between" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
         <div>
+          {/* LOGO */}
+          <img
+            src="/logo.png"
+            alt="Company Logo"
+            style={{ maxHeight: 60, marginBottom: 10 }}
+          />
+
           <h2>Samyama Sdn Bhd</h2>
           <p>Registration No 202001027188</p>
           <p>B-2-3a Seni Mont Kiara</p>
           <p>2a Changkat Duta Kiara</p>
           <p>Kuala Lumpur 50480, Malaysia</p>
         </div>
+
         <div style={{ textAlign: "right" }}>
           <h1>INVOICE</h1>
           <p><strong># {invoiceNo}</strong></p>
@@ -111,20 +126,26 @@ export default function App() {
         <strong>Bill To:</strong>{" "}
         <input
           value={customerName}
-          onChange={e => setCustomerName(e.target.value)}
+          onChange={(e) => setCustomerName(e.target.value)}
         />
       </p>
 
       <p><strong>Invoice Date:</strong> {new Date().toLocaleDateString()}</p>
       <p><strong>Terms:</strong> Net 3</p>
 
-      {/* ITEMS */}
-      <table width="100%" border="1" cellPadding="6" style={{ marginTop: 20, borderCollapse: "collapse" }}>
+      {/* ITEMS TABLE */}
+      <table
+        width="100%"
+        border="1"
+        cellPadding="6"
+        style={{ marginTop: 20, borderCollapse: "collapse" }}
+      >
         <thead>
           <tr>
             <th align="left">Item & Description</th>
             <th align="right">Qty</th>
             <th align="right">Rate</th>
+            <th align="right">Discount</th>
             <th align="right">Amount</th>
             <th />
           </tr>
@@ -132,7 +153,7 @@ export default function App() {
         <tbody>
           {items.length === 0 && (
             <tr>
-              <td colSpan="5" align="center" style={{ color: "#888" }}>
+              <td colSpan="6" align="center" style={{ color: "#888" }}>
                 No items yet
               </td>
             </tr>
@@ -144,29 +165,46 @@ export default function App() {
                 {i + 1}.{" "}
                 <input
                   value={item.description}
-                  onChange={e => updateItem(item.id, "description", e.target.value)}
+                  onChange={(e) =>
+                    updateItem(item.id, "description", e.target.value)
+                  }
                 />
               </td>
               <td align="right">
                 <input
                   type="number"
-                  value={item.qty}
                   min="1"
-                  onChange={e => updateItem(item.id, "qty", Number(e.target.value))}
+                  value={item.qty}
+                  onChange={(e) =>
+                    updateItem(item.id, "qty", Number(e.target.value))
+                  }
                   style={{ width: 60 }}
                 />
               </td>
               <td align="right">
                 <input
                   type="number"
-                  value={item.rate}
                   min="0"
-                  onChange={e => updateItem(item.id, "rate", Number(e.target.value))}
+                  value={item.rate}
+                  onChange={(e) =>
+                    updateItem(item.id, "rate", Number(e.target.value))
+                  }
                   style={{ width: 80 }}
                 />
               </td>
               <td align="right">
-                {money(item.qty * item.rate)}
+                <input
+                  type="number"
+                  min="0"
+                  value={item.discount}
+                  onChange={(e) =>
+                    updateItem(item.id, "discount", Number(e.target.value))
+                  }
+                  style={{ width: 80 }}
+                />
+              </td>
+              <td align="right">
+                {money(item.qty * item.rate - item.discount)}
               </td>
               <td align="center">
                 <button onClick={() => removeItem(item.id)}>✕</button>
