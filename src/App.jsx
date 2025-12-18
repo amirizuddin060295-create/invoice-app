@@ -8,6 +8,10 @@ import {
   serverTimestamp
 } from "firebase/firestore";
 
+/* ================= BRAND COLOR ================= */
+/* Luxury black – safest, most premium */
+const BRAND_COLOR = "#111111";
+
 /* ================= FIREBASE CONFIG ================= */
 const firebaseConfig = {
   apiKey: "AIzaSyB5a0xtjbtUg57v15q5P0N5an0I_LiwA3U",
@@ -24,9 +28,9 @@ const db = getFirestore(app);
 
 /* ================= HELPERS ================= */
 const generateInvoiceNo = () => {
-  const year = new Date().getFullYear().toString().slice(-2);
-  const rand = Math.floor(100 + Math.random() * 900);
-  return `INV${year}-${rand}`;
+  const y = new Date().getFullYear().toString().slice(-2);
+  const r = Math.floor(100 + Math.random() * 900);
+  return `INV${y}-${r}`;
 };
 
 const money = (n) =>
@@ -37,14 +41,12 @@ export default function App() {
   const [user, setUser] = useState(null);
   const [invoiceNo] = useState(generateInvoiceNo());
   const [customerName, setCustomerName] = useState("");
-  const [currency] = useState("MYR");
   const [items, setItems] = useState([]);
 
   /* ================= AUTH ================= */
   useEffect(() => {
     signInAnonymously(auth);
-    const unsub = onAuthStateChanged(auth, setUser);
-    return () => unsub();
+    return onAuthStateChanged(auth, setUser);
   }, []);
 
   /* ================= TOTAL ================= */
@@ -57,13 +59,27 @@ export default function App() {
     [items]
   );
 
+  /* ================= ITEM HELPERS ================= */
+  const addItem = () =>
+    setItems([
+      ...items,
+      { id: Date.now(), description: "", qty: 1, rate: 0, discount: 0 }
+    ]);
+
+  const updateItem = (id, field, value) =>
+    setItems(items.map(i =>
+      i.id === id ? { ...i, [field]: value } : i
+    ));
+
+  const removeItem = (id) =>
+    setItems(items.filter(i => i.id !== id));
+
   /* ================= SAVE ================= */
   const saveInvoice = async () => {
     if (!user) return;
     await addDoc(collection(db, "invoices"), {
       invoiceNo,
       customerName,
-      currency,
       items,
       total: subtotal,
       createdAt: serverTimestamp()
@@ -71,142 +87,101 @@ export default function App() {
     alert("Invoice saved");
   };
 
-  /* ================= ITEM HELPERS ================= */
-  const addItem = () => {
-    setItems([
-      ...items,
-      { id: Date.now(), description: "", qty: 1, rate: 0, discount: 0 }
-    ]);
-  };
-
-  const updateItem = (id, field, value) => {
-    setItems(items.map(i =>
-      i.id === id ? { ...i, [field]: value } : i
-    ));
-  };
-
-  const removeItem = (id) => {
-    setItems(items.filter(i => i.id !== id));
-  };
-
   /* ================= UI ================= */
   return (
-    <div style={{ maxWidth: 840, margin: "auto", padding: 40, fontSize: 13 }}>
+    <div className="page">
       {/* HEADER */}
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-        <div>
-          {/* LOGO */}
-          <img
-            src="/logo.png"
-            alt="Company Logo"
-            style={{ maxHeight: 60, marginBottom: 10 }}
-          />
-
-          <h2>Samyama Sdn Bhd</h2>
-          <p>Registration No 202001027188</p>
-          <p>B-2-3a Seni Mont Kiara</p>
-          <p>2a Changkat Duta Kiara</p>
-          <p>Kuala Lumpur 50480, Malaysia</p>
+      <header className="header">
+        <div className="brand">
+          <img src="/logo.png" alt="Logo" className="logo" />
+          <div className="company">
+            <strong>Samyama Sdn Bhd</strong>
+            <span>Registration No 202001027188</span>
+            <span>Kuala Lumpur, Malaysia</span>
+          </div>
         </div>
 
-        <div style={{ textAlign: "right" }}>
-          <h1>INVOICE</h1>
-          <p><strong># {invoiceNo}</strong></p>
-          <p style={{ marginTop: 10 }}>
-            <strong>Balance Due</strong><br />
-            {currency} {money(subtotal)}
-          </p>
+        <div className="meta">
+          <h1>Invoice</h1>
+          <span className="invoice-no">#{invoiceNo}</span>
+          <div className="balance">
+            <span>Balance Due</span>
+            <strong>MYR {money(subtotal)}</strong>
+          </div>
         </div>
-      </div>
+      </header>
 
-      <hr />
-
-      {/* BILL TO */}
-      <p>
-        <strong>Bill To:</strong>{" "}
+      {/* CLIENT */}
+      <section className="client">
+        <label>Billed To</label>
         <input
+          placeholder="Client name"
           value={customerName}
-          onChange={(e) => setCustomerName(e.target.value)}
+          onChange={e => setCustomerName(e.target.value)}
         />
-      </p>
+      </section>
 
-      <p><strong>Invoice Date:</strong> {new Date().toLocaleDateString()}</p>
-      <p><strong>Terms:</strong> Net 3</p>
-
-      {/* ITEMS TABLE */}
-      <table
-        width="100%"
-        border="1"
-        cellPadding="6"
-        style={{ marginTop: 20, borderCollapse: "collapse" }}
-      >
+      {/* ITEMS */}
+      <table>
         <thead>
           <tr>
-            <th align="left">Item & Description</th>
-            <th align="right">Qty</th>
-            <th align="right">Rate</th>
-            <th align="right">Discount</th>
-            <th align="right">Amount</th>
+            <th>Description</th>
+            <th>Qty</th>
+            <th>Rate</th>
+            <th>Discount</th>
+            <th>Amount</th>
             <th />
           </tr>
         </thead>
         <tbody>
           {items.length === 0 && (
             <tr>
-              <td colSpan="6" align="center" style={{ color: "#888" }}>
+              <td colSpan="6" className="empty">
                 No items yet
               </td>
             </tr>
           )}
-
-          {items.map((item, i) => (
+          {items.map(item => (
             <tr key={item.id}>
               <td>
-                {i + 1}.{" "}
                 <input
                   value={item.description}
-                  onChange={(e) =>
+                  onChange={e =>
                     updateItem(item.id, "description", e.target.value)
                   }
                 />
               </td>
-              <td align="right">
+              <td>
                 <input
                   type="number"
-                  min="1"
                   value={item.qty}
-                  onChange={(e) =>
+                  onChange={e =>
                     updateItem(item.id, "qty", Number(e.target.value))
                   }
-                  style={{ width: 60 }}
                 />
               </td>
-              <td align="right">
+              <td>
                 <input
                   type="number"
-                  min="0"
                   value={item.rate}
-                  onChange={(e) =>
+                  onChange={e =>
                     updateItem(item.id, "rate", Number(e.target.value))
                   }
-                  style={{ width: 80 }}
                 />
               </td>
-              <td align="right">
+              <td>
                 <input
                   type="number"
-                  min="0"
                   value={item.discount}
-                  onChange={(e) =>
+                  onChange={e =>
                     updateItem(item.id, "discount", Number(e.target.value))
                   }
-                  style={{ width: 80 }}
                 />
               </td>
-              <td align="right">
+              <td className="amount">
                 {money(item.qty * item.rate - item.discount)}
               </td>
-              <td align="center">
+              <td>
                 <button onClick={() => removeItem(item.id)}>✕</button>
               </td>
             </tr>
@@ -214,41 +189,138 @@ export default function App() {
         </tbody>
       </table>
 
-      <button onClick={addItem} style={{ marginTop: 10 }}>
-        + Add Item
-      </button>
+      <button className="add" onClick={addItem}>+ Add Item</button>
 
-      {/* TOTALS */}
-      <div style={{ textAlign: "right", marginTop: 20 }}>
-        <p>Sub Total: {currency} {money(subtotal)}</p>
-        <p><strong>Total: {currency} {money(subtotal)}</strong></p>
-        <p><strong>Balance Due: {currency} {money(subtotal)}</strong></p>
-      </div>
+      {/* TOTAL */}
+      <section className="total">
+        <span>Total</span>
+        <strong>MYR {money(subtotal)}</strong>
+      </section>
 
-      <hr />
+      {/* FOOTER */}
+      <footer>
+        <div>
+          <strong>Bank Details</strong>
+          <span>Hong Leong Bank Berhad</span>
+          <span>2120 0080 616</span>
+          <span>Samyama Sdn Bhd</span>
+        </div>
+        <div className="actions">
+          <button onClick={saveInvoice}>Save</button>
+          <button onClick={() => window.print()}>Download PDF</button>
+        </div>
+      </footer>
 
-      {/* BANK */}
-      <p><strong>Bank Details for Payment:</strong></p>
-      <p>Bank Name: Hong Leong Bank Berhad</p>
-      <p>Account Number: 2120 0080 616</p>
-      <p>Account Holder: Samyama Sdn Bhd</p>
-      <p>SWIFT Code: HLBBMYKLXXX</p>
-
-      {/* ACTIONS */}
-      <div style={{ marginTop: 20 }}>
-        <button onClick={saveInvoice}>Save to Cloud</button>
-        <button onClick={() => window.print()} style={{ marginLeft: 10 }}>
-          Download PDF
-        </button>
-      </div>
-
-      {/* PRINT STYLE */}
-      <style>
-        {`@media print {
-          button { display: none; }
-          input { border: none; }
-        }`}
-      </style>
+      {/* STYLES */}
+      <style>{`
+        body {
+          background:#f4f4f4;
+        }
+        .page {
+          background:#fff;
+          max-width:900px;
+          margin:40px auto;
+          padding:60px;
+          font-family:"Helvetica Neue", Arial, sans-serif;
+          color:#111;
+        }
+        .header {
+          display:flex;
+          justify-content:space-between;
+          margin-bottom:50px;
+        }
+        .brand {
+          display:flex;
+          gap:20px;
+          align-items:flex-start;
+        }
+        .logo {
+          height:100px;
+        }
+        .company span {
+          display:block;
+          font-size:12px;
+          color:#555;
+        }
+        h1 {
+          font-weight:300;
+          letter-spacing:3px;
+          color:${BRAND_COLOR};
+        }
+        .invoice-no {
+          color:#888;
+        }
+        .balance strong {
+          font-size:20px;
+          color:${BRAND_COLOR};
+        }
+        label {
+          font-size:12px;
+          text-transform:uppercase;
+          letter-spacing:1px;
+          color:#777;
+        }
+        input {
+          border:none;
+          border-bottom:1px solid #ddd;
+          width:100%;
+          font-size:14px;
+        }
+        table {
+          width:100%;
+          border-collapse:collapse;
+          margin-top:50px;
+        }
+        th {
+          text-align:left;
+          font-size:12px;
+          color:${BRAND_COLOR};
+          border-bottom:1px solid #eee;
+          padding-bottom:10px;
+        }
+        td {
+          padding:16px 6px;
+        }
+        .amount {
+          text-align:right;
+          font-weight:500;
+        }
+        .add {
+          margin-top:20px;
+          border:none;
+          background:none;
+          color:${BRAND_COLOR};
+          font-size:14px;
+        }
+        .total {
+          margin-top:50px;
+          display:flex;
+          justify-content:flex-end;
+          gap:20px;
+          font-size:20px;
+        }
+        footer {
+          margin-top:60px;
+          display:flex;
+          justify-content:space-between;
+          font-size:12px;
+          color:#555;
+        }
+        button {
+          border:1px solid ${BRAND_COLOR};
+          background:none;
+          padding:8px 16px;
+          color:${BRAND_COLOR};
+        }
+        @media print {
+          button {
+            display:none;
+          }
+          body {
+            background:#fff;
+          }
+        }
+      `}</style>
     </div>
   );
 }
