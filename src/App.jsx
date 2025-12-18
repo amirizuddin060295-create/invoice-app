@@ -24,26 +24,21 @@ const db = getFirestore(app);
 
 /* ================= HELPERS ================= */
 const generateInvoiceNo = () => {
-  const y = new Date().getFullYear().toString().slice(-2);
+  const year = new Date().getFullYear().toString().slice(-2);
   const rand = Math.floor(100 + Math.random() * 900);
-  return `INV${y}-${rand}`;
+  return `INV${year}-${rand}`;
 };
+
+const money = (n) =>
+  n.toLocaleString("en-MY", { minimumFractionDigits: 2 });
 
 /* ================= APP ================= */
 export default function App() {
   const [user, setUser] = useState(null);
   const [invoiceNo] = useState(generateInvoiceNo());
-  const [customerName, setCustomerName] = useState("Arni Kamila");
-  const [currency, setCurrency] = useState("MYR");
-
-  const [items, setItems] = useState([
-    { id: 1, description: "Grey Lace Shawl (FOC)", qty: 1, rate: 0 },
-    { id: 2, description: "Set of Kerongsang (FOC)", qty: 1, rate: 0 },
-    { id: 3, description: "Kebaya Cloth", qty: 1, rate: 800 },
-    { id: 4, description: "Kebaya Tailoring", qty: 1, rate: 750 },
-    { id: 5, description: "Kebaya Embroidery", qty: 1, rate: 1500 },
-    { id: 6, description: "Batik Skirt Tailoring", qty: 1, rate: 450 }
-  ]);
+  const [customerName, setCustomerName] = useState("");
+  const [currency] = useState("MYR");
+  const [items, setItems] = useState([]);
 
   /* ================= AUTH ================= */
   useEffect(() => {
@@ -72,16 +67,24 @@ export default function App() {
     alert("Invoice saved");
   };
 
-  /* ================= ITEM UPDATE ================= */
+  /* ================= ITEM HELPERS ================= */
+  const addItem = () => {
+    setItems([...items, { id: Date.now(), description: "", qty: 1, rate: 0 }]);
+  };
+
   const updateItem = (id, field, value) => {
     setItems(items.map(i =>
       i.id === id ? { ...i, [field]: value } : i
     ));
   };
 
+  const removeItem = (id) => {
+    setItems(items.filter(i => i.id !== id));
+  };
+
   /* ================= UI ================= */
   return (
-    <div style={{ maxWidth: 820, margin: "auto", padding: 30, fontSize: 14 }}>
+    <div style={{ maxWidth: 820, margin: "auto", padding: 40, fontSize: 13 }}>
       {/* HEADER */}
       <div style={{ display: "flex", justifyContent: "space-between" }}>
         <div>
@@ -92,10 +95,12 @@ export default function App() {
           <p>Kuala Lumpur 50480, Malaysia</p>
         </div>
         <div style={{ textAlign: "right" }}>
-          <h1>Invoice</h1>
+          <h1>INVOICE</h1>
           <p><strong># {invoiceNo}</strong></p>
-          <p><strong>Balance Due</strong></p>
-          <p>{currency} {subtotal.toFixed(2)}</p>
+          <p style={{ marginTop: 10 }}>
+            <strong>Balance Due</strong><br />
+            {currency} {money(subtotal)}
+          </p>
         </div>
       </div>
 
@@ -113,7 +118,7 @@ export default function App() {
       <p><strong>Invoice Date:</strong> {new Date().toLocaleDateString()}</p>
       <p><strong>Terms:</strong> Net 3</p>
 
-      {/* ITEMS TABLE */}
+      {/* ITEMS */}
       <table width="100%" border="1" cellPadding="6" style={{ marginTop: 20, borderCollapse: "collapse" }}>
         <thead>
           <tr>
@@ -121,9 +126,18 @@ export default function App() {
             <th align="right">Qty</th>
             <th align="right">Rate</th>
             <th align="right">Amount</th>
+            <th />
           </tr>
         </thead>
         <tbody>
+          {items.length === 0 && (
+            <tr>
+              <td colSpan="5" align="center" style={{ color: "#888" }}>
+                No items yet
+              </td>
+            </tr>
+          )}
+
           {items.map((item, i) => (
             <tr key={item.id}>
               <td>
@@ -137,6 +151,7 @@ export default function App() {
                 <input
                   type="number"
                   value={item.qty}
+                  min="1"
                   onChange={e => updateItem(item.id, "qty", Number(e.target.value))}
                   style={{ width: 60 }}
                 />
@@ -145,23 +160,31 @@ export default function App() {
                 <input
                   type="number"
                   value={item.rate}
+                  min="0"
                   onChange={e => updateItem(item.id, "rate", Number(e.target.value))}
                   style={{ width: 80 }}
                 />
               </td>
               <td align="right">
-                {(item.qty * item.rate).toFixed(2)}
+                {money(item.qty * item.rate)}
+              </td>
+              <td align="center">
+                <button onClick={() => removeItem(item.id)}>✕</button>
               </td>
             </tr>
           ))}
         </tbody>
       </table>
 
+      <button onClick={addItem} style={{ marginTop: 10 }}>
+        + Add Item
+      </button>
+
       {/* TOTALS */}
       <div style={{ textAlign: "right", marginTop: 20 }}>
-        <p>Sub Total: {currency} {subtotal.toFixed(2)}</p>
-        <p><strong>Total: {currency} {subtotal.toFixed(2)}</strong></p>
-        <p><strong>Balance Due: {currency} {subtotal.toFixed(2)}</strong></p>
+        <p>Sub Total: {currency} {money(subtotal)}</p>
+        <p><strong>Total: {currency} {money(subtotal)}</strong></p>
+        <p><strong>Balance Due: {currency} {money(subtotal)}</strong></p>
       </div>
 
       <hr />
@@ -180,6 +203,14 @@ export default function App() {
           Download PDF
         </button>
       </div>
+
+      {/* PRINT STYLE */}
+      <style>
+        {`@media print {
+          button { display: none; }
+          input { border: none; }
+        }`}
+      </style>
     </div>
   );
 }
