@@ -8,9 +8,6 @@ import {
   serverTimestamp
 } from "firebase/firestore";
 
-/* ================= BRAND ================= */
-const BRAND_COLOR = "#111111";
-
 /* ================= FIREBASE ================= */
 const firebaseConfig = {
   apiKey: "AIzaSyB5a0xtjbtUg57v15q5P0N5an0I_LiwA3U",
@@ -37,7 +34,7 @@ const generateInvoiceNo = () => {
 };
 
 const money = (n) =>
-  n.toLocaleString("en-MY", { minimumFractionDigits: 2 });
+  Number(n).toLocaleString("en-MY", { minimumFractionDigits: 2 });
 
 /* ================= APP ================= */
 export default function App() {
@@ -52,16 +49,27 @@ export default function App() {
     return onAuthStateChanged(auth, setUser);
   }, []);
 
-  const total = useMemo(
+  /* ===== CALCULATIONS ===== */
+  const subtotal = useMemo(
     () =>
       items.reduce(
-        (s, i) =>
-          s + ((Number(i.qty) || 0) * (Number(i.rate) || 0) - (Number(i.discount) || 0)),
+        (s, i) => s + (Number(i.qty || 0) * Number(i.rate || 0)),
         0
       ),
     [items]
   );
 
+  const totalDiscount = useMemo(
+    () => items.reduce((s, i) => s + Number(i.discount || 0), 0),
+    [items]
+  );
+
+  const total = useMemo(
+    () => subtotal - totalDiscount,
+    [subtotal, totalDiscount]
+  );
+
+  /* ===== ACTIONS ===== */
   const addItem = () =>
     setItems([
       ...items,
@@ -83,13 +91,14 @@ export default function App() {
       customerName,
       currency,
       items,
+      subtotal,
+      totalDiscount,
       total,
       createdAt: serverTimestamp()
     });
     alert("Invoice saved");
   };
 
-  /* ===== PDF DOWNLOAD ===== */
   const handleDownload = () => {
     document.body.classList.add("print-mode");
     setTimeout(() => {
@@ -102,7 +111,7 @@ export default function App() {
     <div className="page">
       {/* HEADER */}
       <header className="header">
-        <div className="brand">
+        <div>
           <img src="/logo.png" className="logo" alt="Logo" />
           <div className="company">
             <strong>Samyama Sdn Bhd</strong>
@@ -112,10 +121,10 @@ export default function App() {
 
         <div className="meta">
           <h1>Invoice</h1>
-          <span className="inv">#{invoiceNo}</span>
+          <span>{invoiceNo}</span>
           <div className="balance">
             <span>Balance Due</span>
-            <div className="balance-amount">
+            <div>
               <span>{currency}</span>
               <strong>{money(total)}</strong>
             </div>
@@ -142,8 +151,8 @@ export default function App() {
         </select>
       </section>
 
-      {/* TABLE (DESKTOP) */}
-      <table className="desktop">
+      {/* ITEMS TABLE */}
+      <table>
         <thead>
           <tr>
             <th>Description</th>
@@ -157,49 +166,92 @@ export default function App() {
         <tbody>
           {items.map(i => (
             <tr key={i.id}>
-              <td><input placeholder="Description" value={i.description} onChange={e => updateItem(i.id,"description",e.target.value)} /></td>
-              <td><input type="number" placeholder="Qty" value={i.qty} onChange={e => updateItem(i.id,"qty",e.target.value)} /></td>
-              <td><input type="number" placeholder="Rate" value={i.rate} onChange={e => updateItem(i.id,"rate",e.target.value)} /></td>
-              <td><input type="number" placeholder="Discount" value={i.discount} onChange={e => updateItem(i.id,"discount",e.target.value)} /></td>
-              <td className="amount">{currency} {money((i.qty||0)*(i.rate||0)-(i.discount||0))}</td>
-              <td><button onClick={() => removeItem(i.id)}>✕</button></td>
+              <td>
+                <div className="edit">
+                  <input
+                    placeholder="Description"
+                    value={i.description}
+                    onChange={e => updateItem(i.id,"description",e.target.value)}
+                  />
+                </div>
+                <div className="print">{i.description || "—"}</div>
+              </td>
+
+              <td>
+                <div className="edit">
+                  <input
+                    type="number"
+                    placeholder="Qty"
+                    value={i.qty}
+                    onChange={e => updateItem(i.id,"qty",e.target.value)}
+                  />
+                </div>
+                <div className="print">{i.qty || 0}</div>
+              </td>
+
+              <td>
+                <div className="edit">
+                  <input
+                    type="number"
+                    placeholder="Rate"
+                    value={i.rate}
+                    onChange={e => updateItem(i.id,"rate",e.target.value)}
+                  />
+                </div>
+                <div className="print">{money(i.rate || 0)}</div>
+              </td>
+
+              <td>
+                <div className="edit">
+                  <input
+                    type="number"
+                    placeholder="Discount"
+                    value={i.discount}
+                    onChange={e => updateItem(i.id,"discount",e.target.value)}
+                  />
+                </div>
+                <div className="print">{money(i.discount || 0)}</div>
+              </td>
+
+              <td className="amount">
+                {currency} {money((i.qty||0)*(i.rate||0)-(i.discount||0))}
+              </td>
+
+              <td className="edit">
+                <button onClick={() => removeItem(i.id)}>✕</button>
+              </td>
             </tr>
           ))}
         </tbody>
       </table>
 
-      {/* MOBILE CARDS */}
-      <div className="mobile">
-        {items.map(i => (
-          <div key={i.id} className="card">
-            <input placeholder="Description" value={i.description} onChange={e => updateItem(i.id,"description",e.target.value)} />
-            <div className="row">
-              <input type="number" placeholder="Qty" value={i.qty} onChange={e => updateItem(i.id,"qty",e.target.value)} />
-              <input type="number" placeholder="Rate" value={i.rate} onChange={e => updateItem(i.id,"rate",e.target.value)} />
-            </div>
-            <input type="number" placeholder="Discount" value={i.discount} onChange={e => updateItem(i.id,"discount",e.target.value)} />
-            <div className="amount">{currency} {money((i.qty||0)*(i.rate||0)-(i.discount||0))}</div>
-            <button onClick={() => removeItem(i.id)}>Remove</button>
-          </div>
-        ))}
-      </div>
+      <button className="add edit" onClick={addItem}>+ Add Item</button>
 
-      <button className="add" onClick={addItem}>+ Add Item</button>
-
-      <section className="total">
-        <strong>Total</strong>
-        <strong>{currency} {money(total)}</strong>
+      {/* SUMMARY */}
+      <section className="summary">
+        <div>
+          <span>Subtotal</span>
+          <span>{currency} {money(subtotal)}</span>
+        </div>
+        <div>
+          <span>Total Discount</span>
+          <span>- {currency} {money(totalDiscount)}</span>
+        </div>
+        <div className="grand">
+          <span>Total</span>
+          <span>{currency} {money(total)}</span>
+        </div>
       </section>
 
       {/* FOOTER */}
       <footer>
-        <div className="bank">
+        <div>
           <strong>Bank Details</strong>
           <span>Hong Leong Bank Berhad</span>
           <span>2120 0080 616</span>
           <span>Samyama Sdn Bhd</span>
         </div>
-        <div className="actions">
+        <div className="edit">
           <button onClick={saveInvoice}>Save</button>
           <button onClick={handleDownload}>Download PDF</button>
         </div>
@@ -207,39 +259,26 @@ export default function App() {
 
       {/* STYLES */}
       <style>{`
-        .page { max-width:900px; margin:auto; padding:24px; font-family:"Helvetica Neue",Arial,sans-serif; color:#111; }
-        input::placeholder { color:#bbb; font-weight:300; }
-        .header { display:flex; justify-content:space-between; flex-wrap:wrap; gap:32px; margin-bottom:56px; }
-        .logo { height:72px; }
-        label { font-size:12px; color:#777; text-transform:uppercase; letter-spacing:1px; }
-        input, select { width:100%; border:none; border-bottom:1px solid #ddd; padding:6px 0; font-size:14px; }
-        .client, .currency { margin-bottom:32px; }
-        table { width:100%; border-collapse:collapse; margin-top:32px; }
-        th, td { padding:14px 6px; }
-        th { font-size:12px; color:#555; border-bottom:1px solid #eee; }
-        .amount { text-align:right; font-weight:500; }
-        .desktop { display:none; }
-        .mobile .card { border:1px solid #eee; padding:18px; margin-bottom:18px; border-radius:8px; }
-        .row { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin:12px 0; }
-        .add { margin-top:16px; background:none; border:none; color:${BRAND_COLOR}; }
-        .total { margin-top:48px; display:flex; justify-content:space-between; font-size:20px; }
-        footer { margin-top:64px; padding-top:40px; border-top:1px solid #eee; display:flex; flex-direction:column; gap:32px; font-size:12px; }
-        .actions { display:flex; gap:12px; flex-wrap:wrap; }
+        .page { max-width:900px; margin:auto; padding:24px; font-family:Arial; }
+        .header { display:flex; justify-content:space-between; margin-bottom:40px; }
+        .logo { height:70px; }
+        .company span { display:block; font-size:12px; color:#555; }
+        input, select { width:100%; border:none; border-bottom:1px solid #ccc; }
+        label { font-size:12px; color:#777; }
+        table { width:100%; border-collapse:collapse; margin-top:24px; }
+        th, td { padding:12px; border-bottom:1px solid #eee; }
+        .amount { text-align:right; }
+        .add { margin-top:16px; }
+        .summary { margin-top:32px; max-width:300px; margin-left:auto; }
+        .summary div { display:flex; justify-content:space-between; margin-top:8px; }
+        .summary .grand { font-weight:bold; font-size:18px; margin-top:12px; }
+        footer { margin-top:48px; padding-top:24px; border-top:1px solid #eee; display:flex; justify-content:space-between; font-size:12px; }
+        .print { display:none; }
 
-        @media (min-width:768px) {
-          .desktop { display:table; }
-          .mobile { display:none; }
-          footer { flex-direction:row; justify-content:space-between; }
-        }
-
-        /* ===== PRINT / PDF ===== */
         @media print {
-          body { background:white; }
-          .page { max-width:100%; padding:0; margin:0; }
-          button, .add, select, input { display:none !important; }
-          header { margin-bottom:40px; }
-          table { margin-top:24px; }
-          footer { margin-top:60px; }
+          .edit, button, select, input, .add { display:none !important; }
+          .print { display:block !important; }
+          .page { padding:0; }
         }
       `}</style>
     </div>
