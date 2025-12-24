@@ -46,6 +46,7 @@ export default function App() {
   const [user, setUser] = useState(null);
   const [invoiceNo] = useState(generateInvoiceNo());
   const [customerName, setCustomerName] = useState("");
+  const [currency, setCurrency] = useState("MYR");
   const [items, setItems] = useState([]);
 
   useEffect(() => {
@@ -124,6 +125,17 @@ export default function App() {
           onChange={e => setCustomerName(e.target.value)}
         />
       </section>
+      <section className="currency">
+  <label>Currency</label>
+  <select
+    value={currency}
+    onChange={e => setCurrency(e.target.value)}
+  >
+    <option value="MYR">MYR</option>
+    <option value="SGD">SGD</option>
+  </select>
+</section>
+
 
       {/* ITEMS */}
       <div className="table-wrap">
@@ -376,5 +388,6 @@ export default function App() {
     </div>
   );
 }
+
 
 
