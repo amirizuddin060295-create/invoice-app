@@ -198,13 +198,18 @@ export default function App() {
       </section>
 
       {/* FOOTER */}
-      <footer>
-        <div className="bank">
-          <strong>Bank Details</strong>
-          <span>Hong Leong Bank Berhad</span>
-          <span>2120 0080 616</span>
-          <span>Samyama Sdn Bhd</span>
-        </div>
+   <footer className="footer">
+  <div className="bank">
+    <strong className="bank-title">Bank Details</strong>
+
+    <div className="bank-line">
+      <span className="label">Bank</span>
+      <span className="value">Hong Leong Bank Berhad</span>
+    </div>
+
+    <div className="bank-line">
+      <span className="label">Account No.</span>
+      <span className="value">2120 0080 616</span>
 
         <div className="actions">
           <button onClick={saveInvoice}>Save</button>
@@ -365,3 +370,4 @@ export default function App() {
     </div>
   );
 }
+
