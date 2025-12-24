@@ -53,7 +53,12 @@ export default function App() {
   }, []);
 
   const total = useMemo(
-    () => items.reduce((s, i) => s + (i.qty * i.rate - i.discount), 0),
+    () =>
+      items.reduce(
+        (s, i) =>
+          s + ((Number(i.qty) || 0) * (Number(i.rate) || 0) - (Number(i.discount) || 0)),
+        0
+      ),
     [items]
   );
 
@@ -84,12 +89,21 @@ export default function App() {
     alert("Invoice saved");
   };
 
+  /* ===== PDF DOWNLOAD ===== */
+  const handleDownload = () => {
+    document.body.classList.add("print-mode");
+    setTimeout(() => {
+      window.print();
+      document.body.classList.remove("print-mode");
+    }, 300);
+  };
+
   return (
     <div className="page">
       {/* HEADER */}
       <header className="header">
         <div className="brand">
-          <img src="/logo.png" className="logo" />
+          <img src="/logo.png" className="logo" alt="Logo" />
           <div className="company">
             <strong>Samyama Sdn Bhd</strong>
             <span>Kuala Lumpur, Malaysia</span>
@@ -101,7 +115,7 @@ export default function App() {
           <span className="inv">#{invoiceNo}</span>
           <div className="balance">
             <span>Balance Due</span>
-            <div>
+            <div className="balance-amount">
               <span>{currency}</span>
               <strong>{money(total)}</strong>
             </div>
@@ -128,7 +142,7 @@ export default function App() {
         </select>
       </section>
 
-      {/* DESKTOP TABLE */}
+      {/* TABLE (DESKTOP) */}
       <table className="desktop">
         <thead>
           <tr>
@@ -143,43 +157,12 @@ export default function App() {
         <tbody>
           {items.map(i => (
             <tr key={i.id}>
-              <td>
-                <input
-                  placeholder="Description"
-                  value={i.description}
-                  onChange={e => updateItem(i.id,"description",e.target.value)}
-                />
-              </td>
-              <td>
-                <input
-                  type="number"
-                  placeholder="Qty"
-                  value={i.qty}
-                  onChange={e => updateItem(i.id,"qty",e.target.value)}
-                />
-              </td>
-              <td>
-                <input
-                  type="number"
-                  placeholder="Rate"
-                  value={i.rate}
-                  onChange={e => updateItem(i.id,"rate",e.target.value)}
-                />
-              </td>
-              <td>
-                <input
-                  type="number"
-                  placeholder="Discount"
-                  value={i.discount}
-                  onChange={e => updateItem(i.id,"discount",e.target.value)}
-                />
-              </td>
-              <td className="amount">
-                {currency} {money((i.qty || 0) * (i.rate || 0) - (i.discount || 0))}
-              </td>
-              <td>
-                <button onClick={() => removeItem(i.id)}>✕</button>
-              </td>
+              <td><input placeholder="Description" value={i.description} onChange={e => updateItem(i.id,"description",e.target.value)} /></td>
+              <td><input type="number" placeholder="Qty" value={i.qty} onChange={e => updateItem(i.id,"qty",e.target.value)} /></td>
+              <td><input type="number" placeholder="Rate" value={i.rate} onChange={e => updateItem(i.id,"rate",e.target.value)} /></td>
+              <td><input type="number" placeholder="Discount" value={i.discount} onChange={e => updateItem(i.id,"discount",e.target.value)} /></td>
+              <td className="amount">{currency} {money((i.qty||0)*(i.rate||0)-(i.discount||0))}</td>
+              <td><button onClick={() => removeItem(i.id)}>✕</button></td>
             </tr>
           ))}
         </tbody>
@@ -189,34 +172,13 @@ export default function App() {
       <div className="mobile">
         {items.map(i => (
           <div key={i.id} className="card">
-            <input
-              placeholder="Description"
-              value={i.description}
-              onChange={e => updateItem(i.id,"description",e.target.value)}
-            />
+            <input placeholder="Description" value={i.description} onChange={e => updateItem(i.id,"description",e.target.value)} />
             <div className="row">
-              <input
-                type="number"
-                placeholder="Qty"
-                value={i.qty}
-                onChange={e => updateItem(i.id,"qty",e.target.value)}
-              />
-              <input
-                type="number"
-                placeholder="Rate"
-                value={i.rate}
-                onChange={e => updateItem(i.id,"rate",e.target.value)}
-              />
+              <input type="number" placeholder="Qty" value={i.qty} onChange={e => updateItem(i.id,"qty",e.target.value)} />
+              <input type="number" placeholder="Rate" value={i.rate} onChange={e => updateItem(i.id,"rate",e.target.value)} />
             </div>
-            <input
-              type="number"
-              placeholder="Discount"
-              value={i.discount}
-              onChange={e => updateItem(i.id,"discount",e.target.value)}
-            />
-            <div className="amount">
-              {currency} {money((i.qty || 0) * (i.rate || 0) - (i.discount || 0))}
-            </div>
+            <input type="number" placeholder="Discount" value={i.discount} onChange={e => updateItem(i.id,"discount",e.target.value)} />
+            <div className="amount">{currency} {money((i.qty||0)*(i.rate||0)-(i.discount||0))}</div>
             <button onClick={() => removeItem(i.id)}>Remove</button>
           </div>
         ))}
@@ -239,140 +201,45 @@ export default function App() {
         </div>
         <div className="actions">
           <button onClick={saveInvoice}>Save</button>
-          <button onClick={() => window.print()}>Download PDF</button>
+          <button onClick={handleDownload}>Download PDF</button>
         </div>
       </footer>
 
       {/* STYLES */}
       <style>{`
-        .page {
-          max-width:900px;
-          margin:auto;
-          padding:24px;
-          font-family: "Helvetica Neue", Arial, sans-serif;
-          color:#111;
-        }
-
-        input::placeholder {
-          color:#bbb;
-          font-weight:300;
-          letter-spacing:0.4px;
-        }
-
-        .header {
-          display:flex;
-          justify-content:space-between;
-          flex-wrap:wrap;
-          gap:32px;
-          margin-bottom:56px;
-        }
-
+        .page { max-width:900px; margin:auto; padding:24px; font-family:"Helvetica Neue",Arial,sans-serif; color:#111; }
+        input::placeholder { color:#bbb; font-weight:300; }
+        .header { display:flex; justify-content:space-between; flex-wrap:wrap; gap:32px; margin-bottom:56px; }
         .logo { height:72px; }
-
-        label {
-          font-size:12px;
-          color:#777;
-          text-transform:uppercase;
-          letter-spacing:1px;
-        }
-
-        input, select {
-          width:100%;
-          border:none;
-          border-bottom:1px solid #ddd;
-          padding:6px 0;
-          font-size:14px;
-        }
-
-        .client, .currency {
-          margin-bottom:32px;
-        }
-
-        table {
-          width:100%;
-          border-collapse:collapse;
-          margin-top:32px;
-        }
-
-        th, td {
-          padding:14px 6px;
-          font-size:14px;
-        }
-
-        th {
-          font-size:12px;
-          color:#555;
-          border-bottom:1px solid #eee;
-        }
-
-        .amount {
-          text-align:right;
-          font-weight:500;
-        }
-
+        label { font-size:12px; color:#777; text-transform:uppercase; letter-spacing:1px; }
+        input, select { width:100%; border:none; border-bottom:1px solid #ddd; padding:6px 0; font-size:14px; }
+        .client, .currency { margin-bottom:32px; }
+        table { width:100%; border-collapse:collapse; margin-top:32px; }
+        th, td { padding:14px 6px; }
+        th { font-size:12px; color:#555; border-bottom:1px solid #eee; }
+        .amount { text-align:right; font-weight:500; }
         .desktop { display:none; }
-
-        .mobile .card {
-          border:1px solid #eee;
-          padding:18px;
-          margin-bottom:18px;
-          border-radius:8px;
-        }
-
-        .row {
-          display:grid;
-          grid-template-columns:1fr 1fr;
-          gap:12px;
-          margin:12px 0;
-        }
-
-        .add {
-          margin-top:16px;
-          background:none;
-          border:none;
-          color:${BRAND_COLOR};
-          font-size:14px;
-        }
-
-        .total {
-          margin-top:48px;
-          display:flex;
-          justify-content:space-between;
-          font-size:20px;
-        }
-
-        footer {
-          margin-top:64px;
-          padding-top:40px;
-          border-top:1px solid #eee;
-          display:flex;
-          flex-direction:column;
-          gap:32px;
-          font-size:12px;
-          color:#555;
-        }
-
-        .bank strong { display:block; margin-bottom:10px; }
-        .bank span { display:block; margin-top:6px; }
-
-        .actions {
-          display:flex;
-          gap:12px;
-          flex-wrap:wrap;
-        }
+        .mobile .card { border:1px solid #eee; padding:18px; margin-bottom:18px; border-radius:8px; }
+        .row { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin:12px 0; }
+        .add { margin-top:16px; background:none; border:none; color:${BRAND_COLOR}; }
+        .total { margin-top:48px; display:flex; justify-content:space-between; font-size:20px; }
+        footer { margin-top:64px; padding-top:40px; border-top:1px solid #eee; display:flex; flex-direction:column; gap:32px; font-size:12px; }
+        .actions { display:flex; gap:12px; flex-wrap:wrap; }
 
         @media (min-width:768px) {
           .desktop { display:table; }
           .mobile { display:none; }
-          footer {
-            flex-direction:row;
-            justify-content:space-between;
-            align-items:flex-start;
-          }
+          footer { flex-direction:row; justify-content:space-between; }
         }
 
+        /* ===== PRINT / PDF ===== */
         @media print {
-          .mobile, .add, button { display:none; }
+          body { background:white; }
+          .page { max-width:100%; padding:0; margin:0; }
+          button, .add, select, input { display:none !important; }
+          header { margin-bottom:40px; }
+          table { margin-top:24px; }
+          footer { margin-top:60px; }
         }
       `}</style>
     </div>
