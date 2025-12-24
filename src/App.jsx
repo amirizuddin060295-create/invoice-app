@@ -1,12 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { initializeApp } from "firebase/app";
 import { getAuth, signInAnonymously, onAuthStateChanged } from "firebase/auth";
-import {
-  getFirestore,
-  collection,
-  addDoc,
-  serverTimestamp
-} from "firebase/firestore";
+import { getFirestore, collection, addDoc, serverTimestamp } from "firebase/firestore";
 
 /* ================= FIREBASE ================= */
 const firebaseConfig = {
@@ -25,16 +20,10 @@ const db = getFirestore(app);
 /* ================= HELPERS ================= */
 const generateInvoiceNo = () => {
   const d = new Date();
-  const yy = d.getFullYear().toString().slice(-2);
-  const mm = String(d.getMonth() + 1).padStart(2, "0");
-  const dd = String(d.getDate()).padStart(2, "0");
-  const hh = String(d.getHours()).padStart(2, "0");
-  const min = String(d.getMinutes()).padStart(2, "0");
-  return `INV-${yy}${mm}${dd}${hh}${min}`;
+  return `INV-${d.getFullYear().toString().slice(-2)}${String(d.getMonth()+1).padStart(2,"0")}${String(d.getDate()).padStart(2,"0")}${String(d.getHours()).padStart(2,"0")}${String(d.getMinutes()).padStart(2,"0")}`;
 };
 
-const money = (n) =>
-  Number(n).toLocaleString("en-MY", { minimumFractionDigits: 2 });
+const money = n => Number(n).toLocaleString("en-MY", { minimumFractionDigits: 2 });
 
 /* ================= APP ================= */
 export default function App() {
@@ -49,201 +38,109 @@ export default function App() {
     return onAuthStateChanged(auth, setUser);
   }, []);
 
-  /* ===== CALCULATIONS ===== */
   const subtotal = useMemo(
-    () =>
-      items.reduce(
-        (s, i) => s + (Number(i.qty || 0) * Number(i.rate || 0)),
-        0
-      ),
+    () => items.reduce((s,i)=>s+(i.qty||0)*(i.rate||0),0),
     [items]
   );
-
-  const totalDiscount = useMemo(
-    () => items.reduce((s, i) => s + Number(i.discount || 0), 0),
+  const discount = useMemo(
+    () => items.reduce((s,i)=>s+(i.discount||0),0),
     [items]
   );
+  const total = subtotal - discount;
 
-  const total = useMemo(
-    () => subtotal - totalDiscount,
-    [subtotal, totalDiscount]
-  );
-
-  /* ===== ACTIONS ===== */
   const addItem = () =>
-    setItems([
-      ...items,
-      { id: Date.now(), description: "", qty: "", rate: "", discount: "" }
-    ]);
+    setItems([...items,{id:Date.now(),description:"",qty:1,rate:0,discount:0}]);
 
-  const updateItem = (id, field, value) =>
-    setItems(items.map(i =>
-      i.id === id ? { ...i, [field]: value } : i
-    ));
+  const updateItem = (id,field,value) =>
+    setItems(items.map(i=>i.id===id?{...i,[field]:Number(value)||value}:i));
 
   const removeItem = id =>
-    setItems(items.filter(i => i.id !== id));
+    setItems(items.filter(i=>i.id!==id));
 
   const saveInvoice = async () => {
-    if (!user) return;
-    await addDoc(collection(db, "invoices"), {
-      invoiceNo,
-      customerName,
-      currency,
-      items,
-      subtotal,
-      totalDiscount,
-      total,
-      createdAt: serverTimestamp()
+    await addDoc(collection(db,"invoices"),{
+      invoiceNo,customerName,currency,items,subtotal,discount,total,
+      createdAt:serverTimestamp()
     });
-    alert("Invoice saved");
+    alert("Saved");
   };
 
-  const handleDownload = () => {
-    document.body.classList.add("print-mode");
-    setTimeout(() => {
-      window.print();
-      document.body.classList.remove("print-mode");
-    }, 300);
-  };
+  const downloadPDF = () => window.print();
 
   return (
     <div className="page">
-      {/* HEADER */}
       <header className="header">
         <div>
-          <img src="/logo.png" className="logo" alt="Logo" />
+          <img src="/logo.png" className="logo" />
           <div className="company">
             <strong>Samyama Sdn Bhd</strong>
             <span>Kuala Lumpur, Malaysia</span>
           </div>
         </div>
-
         <div className="meta">
           <h1>Invoice</h1>
           <span>{invoiceNo}</span>
           <div className="balance">
             <span>Balance Due</span>
-            <div>
-              <span>{currency}</span>
-              <strong>{money(total)}</strong>
-            </div>
+            <strong>{currency} {money(total)}</strong>
           </div>
         </div>
       </header>
 
-      {/* CLIENT */}
-      <section className="client">
+      <section>
         <label>Billed To</label>
-        <input
-          placeholder="Client name"
-          value={customerName}
-          onChange={e => setCustomerName(e.target.value)}
-        />
+        <input value={customerName} onChange={e=>setCustomerName(e.target.value)} />
       </section>
 
-      {/* CURRENCY */}
-      <section className="currency">
+      <section>
         <label>Currency</label>
-        <select value={currency} onChange={e => setCurrency(e.target.value)}>
-          <option value="MYR">MYR</option>
-          <option value="SGD">SGD</option>
+        <select value={currency} onChange={e=>setCurrency(e.target.value)}>
+          <option>MYR</option>
+          <option>SGD</option>
         </select>
       </section>
 
-      {/* ITEMS TABLE */}
-      <table>
+      {/* DESKTOP TABLE (USED FOR PDF) */}
+      <table className="desktop">
         <thead>
           <tr>
-            <th>Description</th>
-            <th>Qty</th>
-            <th>Rate</th>
-            <th>Discount</th>
-            <th>Amount</th>
-            <th />
+            <th>Description</th><th>Qty</th><th>Rate</th><th>Discount</th><th>Amount</th>
           </tr>
         </thead>
         <tbody>
-          {items.map(i => (
+          {items.map(i=>(
             <tr key={i.id}>
-              <td>
-                <div className="edit">
-                  <input
-                    placeholder="Description"
-                    value={i.description}
-                    onChange={e => updateItem(i.id,"description",e.target.value)}
-                  />
-                </div>
-                <div className="print">{i.description || "—"}</div>
-              </td>
-
-              <td>
-                <div className="edit">
-                  <input
-                    type="number"
-                    placeholder="Qty"
-                    value={i.qty}
-                    onChange={e => updateItem(i.id,"qty",e.target.value)}
-                  />
-                </div>
-                <div className="print">{i.qty || 0}</div>
-              </td>
-
-              <td>
-                <div className="edit">
-                  <input
-                    type="number"
-                    placeholder="Rate"
-                    value={i.rate}
-                    onChange={e => updateItem(i.id,"rate",e.target.value)}
-                  />
-                </div>
-                <div className="print">{money(i.rate || 0)}</div>
-              </td>
-
-              <td>
-                <div className="edit">
-                  <input
-                    type="number"
-                    placeholder="Discount"
-                    value={i.discount}
-                    onChange={e => updateItem(i.id,"discount",e.target.value)}
-                  />
-                </div>
-                <div className="print">{money(i.discount || 0)}</div>
-              </td>
-
-              <td className="amount">
-                {currency} {money((i.qty||0)*(i.rate||0)-(i.discount||0))}
-              </td>
-
-              <td className="edit">
-                <button onClick={() => removeItem(i.id)}>✕</button>
-              </td>
+              <td>{i.description}</td>
+              <td>{i.qty}</td>
+              <td>{money(i.rate)}</td>
+              <td>{money(i.discount)}</td>
+              <td>{currency} {money(i.qty*i.rate-i.discount)}</td>
             </tr>
           ))}
         </tbody>
       </table>
 
-      <button className="add edit" onClick={addItem}>+ Add Item</button>
+      {/* MOBILE EDITOR */}
+      <div className="mobile">
+        {items.map(i=>(
+          <div key={i.id} className="card">
+            <input placeholder="Description" value={i.description} onChange={e=>updateItem(i.id,"description",e.target.value)} />
+            <input type="number" placeholder="Qty" value={i.qty} onChange={e=>updateItem(i.id,"qty",e.target.value)} />
+            <input type="number" placeholder="Rate" value={i.rate} onChange={e=>updateItem(i.id,"rate",e.target.value)} />
+            <input type="number" placeholder="Discount" value={i.discount} onChange={e=>updateItem(i.id,"discount",e.target.value)} />
+            <button onClick={()=>removeItem(i.id)}>Remove</button>
+          </div>
+        ))}
+      </div>
 
-      {/* SUMMARY */}
+      <button onClick={addItem}>+ Add Item</button>
+
       <section className="summary">
-        <div>
-          <span>Subtotal</span>
-          <span>{currency} {money(subtotal)}</span>
-        </div>
-        <div>
-          <span>Total Discount</span>
-          <span>- {currency} {money(totalDiscount)}</span>
-        </div>
-        <div className="grand">
-          <span>Total</span>
-          <span>{currency} {money(total)}</span>
-        </div>
+        <div>Subtotal: {currency} {money(subtotal)}</div>
+        <div>Discount: -{currency} {money(discount)}</div>
+        <strong>Total: {currency} {money(total)}</strong>
       </section>
 
-      {/* FOOTER */}
       <footer>
         <div>
           <strong>Bank Details</strong>
@@ -251,34 +148,33 @@ export default function App() {
           <span>2120 0080 616</span>
           <span>Samyama Sdn Bhd</span>
         </div>
-        <div className="edit">
+        <div>
           <button onClick={saveInvoice}>Save</button>
-          <button onClick={handleDownload}>Download PDF</button>
+          <button onClick={downloadPDF}>Download PDF</button>
         </div>
       </footer>
 
-      {/* STYLES */}
       <style>{`
-        .page { max-width:900px; margin:auto; padding:24px; font-family:Arial; }
-        .header { display:flex; justify-content:space-between; margin-bottom:40px; }
-        .logo { height:70px; }
-        .company span { display:block; font-size:12px; color:#555; }
-        input, select { width:100%; border:none; border-bottom:1px solid #ccc; }
-        label { font-size:12px; color:#777; }
-        table { width:100%; border-collapse:collapse; margin-top:24px; }
-        th, td { padding:12px; border-bottom:1px solid #eee; }
-        .amount { text-align:right; }
-        .add { margin-top:16px; }
-        .summary { margin-top:32px; max-width:300px; margin-left:auto; }
-        .summary div { display:flex; justify-content:space-between; margin-top:8px; }
-        .summary .grand { font-weight:bold; font-size:18px; margin-top:12px; }
-        footer { margin-top:48px; padding-top:24px; border-top:1px solid #eee; display:flex; justify-content:space-between; font-size:12px; }
-        .print { display:none; }
+        .page{max-width:900px;margin:auto;padding:24px;font-family:Arial}
+        .header{display:flex;justify-content:space-between;margin-bottom:32px}
+        .logo{height:70px}
+        input,select{width:100%;margin-top:6px}
+        table{width:100%;border-collapse:collapse;margin-top:24px}
+        th,td{border-bottom:1px solid #eee;padding:10px}
+        .desktop{display:none}
+        .mobile .card{border:1px solid #ddd;padding:12px;margin-bottom:12px}
+        footer{margin-top:40px;border-top:1px solid #eee;padding-top:20px;display:flex;justify-content:space-between}
 
-        @media print {
-          .edit, button, select, input, .add { display:none !important; }
-          .print { display:block !important; }
-          .page { padding:0; }
+        @media (min-width:768px){
+          .desktop{display:table}
+          .mobile{display:none}
+        }
+
+        /* 🔥 PRINT FIX */
+        @media print{
+          .mobile,button,select,input{display:none!important}
+          .desktop{display:table!important}
+          body{background:white}
         }
       `}</style>
     </div>
