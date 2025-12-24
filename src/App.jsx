@@ -27,9 +27,15 @@ const db = getFirestore(app);
 
 /* ================= HELPERS ================= */
 const generateInvoiceNo = () => {
-  const y = new Date().getFullYear().toString().slice(-2);
-  const r = Math.floor(100 + Math.random() * 900);
-  return `INV${y}-${r}`;
+  const now = new Date();
+
+  const yy = now.getFullYear().toString().slice(-2);
+  const mm = String(now.getMonth() + 1).padStart(2, "0");
+  const dd = String(now.getDate()).padStart(2, "0");
+  const hh = String(now.getHours()).padStart(2, "0");
+  const min = String(now.getMinutes()).padStart(2, "0");
+
+  return `INV-${yy}${mm}${dd}${hh}${min}`;
 };
 
 const money = (n) =>
@@ -370,4 +376,5 @@ export default function App() {
     </div>
   );
 }
+
 
