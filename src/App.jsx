@@ -120,72 +120,74 @@ export default function App() {
       </section>
 
       {/* ITEMS */}
-      <table>
-        <thead>
-          <tr>
-            <th>Description</th>
-            <th>Qty</th>
-            <th>Rate</th>
-            <th>Discount</th>
-            <th>Amount</th>
-            <th />
-          </tr>
-        </thead>
-        <tbody>
-          {items.length === 0 && (
+      <div className="table-wrap">
+        <table>
+          <thead>
             <tr>
-              <td colSpan="6" className="empty">
-                No items yet
-              </td>
+              <th>Description</th>
+              <th>Qty</th>
+              <th>Rate</th>
+              <th>Discount</th>
+              <th>Amount</th>
+              <th />
             </tr>
-          )}
-          {items.map(item => (
-            <tr key={item.id}>
-              <td>
-                <input
-                  value={item.description}
-                  onChange={e =>
-                    updateItem(item.id, "description", e.target.value)
-                  }
-                />
-              </td>
-              <td>
-                <input
-                  type="number"
-                  value={item.qty}
-                  onChange={e =>
-                    updateItem(item.id, "qty", Number(e.target.value))
-                  }
-                />
-              </td>
-              <td>
-                <input
-                  type="number"
-                  value={item.rate}
-                  onChange={e =>
-                    updateItem(item.id, "rate", Number(e.target.value))
-                  }
-                />
-              </td>
-              <td>
-                <input
-                  type="number"
-                  value={item.discount}
-                  onChange={e =>
-                    updateItem(item.id, "discount", Number(e.target.value))
-                  }
-                />
-              </td>
-              <td className="amount">
-                {money(item.qty * item.rate - item.discount)}
-              </td>
-              <td>
-                <button onClick={() => removeItem(item.id)}>✕</button>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {items.length === 0 && (
+              <tr>
+                <td colSpan="6" className="empty">
+                  No items yet
+                </td>
+              </tr>
+            )}
+            {items.map(item => (
+              <tr key={item.id}>
+                <td>
+                  <input
+                    value={item.description}
+                    onChange={e =>
+                      updateItem(item.id, "description", e.target.value)
+                    }
+                  />
+                </td>
+                <td>
+                  <input
+                    type="number"
+                    value={item.qty}
+                    onChange={e =>
+                      updateItem(item.id, "qty", Number(e.target.value))
+                    }
+                  />
+                </td>
+                <td>
+                  <input
+                    type="number"
+                    value={item.rate}
+                    onChange={e =>
+                      updateItem(item.id, "rate", Number(e.target.value))
+                    }
+                  />
+                </td>
+                <td>
+                  <input
+                    type="number"
+                    value={item.discount}
+                    onChange={e =>
+                      updateItem(item.id, "discount", Number(e.target.value))
+                    }
+                  />
+                </td>
+                <td className="amount">
+                  {money(item.qty * item.rate - item.discount)}
+                </td>
+                <td>
+                  <button onClick={() => removeItem(item.id)}>✕</button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
 
       <button className="add" onClick={addItem}>+ Add Item</button>
 
@@ -217,8 +219,8 @@ export default function App() {
         .page {
           background:#fff;
           max-width:900px;
-          margin:40px auto;
-          padding:70px;
+          margin:20px auto;
+          padding:24px;
           font-family:"Helvetica Neue", Arial, sans-serif;
           color:#111;
         }
@@ -226,62 +228,45 @@ export default function App() {
         .header {
           display:flex;
           justify-content:space-between;
-          margin-bottom:70px;
+          gap:24px;
+          flex-wrap:wrap;
+          margin-bottom:40px;
         }
 
-        .brand { display:flex; gap:24px; }
-        .logo { height:110px; }
+        .brand {
+          display:flex;
+          gap:16px;
+          align-items:center;
+        }
+
+        .logo {
+          height:70px;
+        }
 
         .company span {
           display:block;
           font-size:12px;
-          margin-top:6px;
           color:#555;
+        }
+
+        .meta {
+          text-align:right;
         }
 
         h1 {
           font-weight:300;
-          letter-spacing:4px;
+          letter-spacing:3px;
           color:${BRAND_COLOR};
           margin-bottom:6px;
         }
 
-        .invoice-no { color:#888; }
-
-        .balance {
-          margin-top:20px;
-          text-align:right;
-        }
-
-        .balance span {
-          font-size:12px;
-          color:#777;
-        }
-
-        .balance-amount {
-          margin-top:8px;
-        }
-
-        .balance-amount span {
-          display:block;
-          font-size:12px;
-          color:#777;
-        }
-
         .balance-amount strong {
-          font-size:22px;
+          font-size:20px;
           color:${BRAND_COLOR};
         }
 
         .client {
-          margin-bottom:60px;
-        }
-
-        label {
-          font-size:12px;
-          text-transform:uppercase;
-          letter-spacing:1px;
-          color:#777;
+          margin-bottom:32px;
         }
 
         input {
@@ -292,22 +277,25 @@ export default function App() {
           padding:6px 0;
         }
 
+        .table-wrap {
+          overflow-x:auto;
+        }
+
         table {
           width:100%;
+          min-width:600px;
           border-collapse:collapse;
-          margin-top:30px;
         }
 
         th {
-          text-align:left;
           font-size:12px;
-          color:${BRAND_COLOR};
           border-bottom:1px solid #eee;
-          padding-bottom:14px;
+          padding-bottom:12px;
+          text-align:left;
         }
 
         td {
-          padding:20px 6px;
+          padding:16px 6px;
         }
 
         .amount {
@@ -316,43 +304,59 @@ export default function App() {
         }
 
         .add {
-          margin-top:24px;
-          border:none;
+          margin-top:16px;
           background:none;
+          border:none;
           color:${BRAND_COLOR};
-          font-size:14px;
         }
 
         .total {
-          margin-top:70px;
+          margin-top:40px;
           display:flex;
           justify-content:flex-end;
-          gap:20px;
-          font-size:22px;
+          font-size:20px;
         }
 
         footer {
-          margin-top:80px;
-          padding-top:40px;
+          margin-top:48px;
+          padding-top:24px;
           border-top:1px solid #eee;
           display:flex;
-          justify-content:space-between;
+          flex-direction:column;
+          gap:24px;
           font-size:12px;
-          color:#555;
         }
 
-        .bank span {
-          display:block;
-          margin-top:6px;
+        .actions {
+          display:flex;
+          gap:12px;
+          flex-wrap:wrap;
         }
 
         button {
           border:1px solid ${BRAND_COLOR};
           background:none;
-          padding:10px 18px;
+          padding:10px 16px;
           color:${BRAND_COLOR};
         }
 
+        /* ===== DESKTOP ===== */
+        @media (min-width: 768px) {
+          .page {
+            padding:60px;
+          }
+
+          footer {
+            flex-direction:row;
+            justify-content:space-between;
+          }
+
+          .meta {
+            text-align:right;
+          }
+        }
+
+        /* ===== PRINT ===== */
         @media print {
           button { display:none; }
           body { background:#fff; }
